@@ -1,96 +1,147 @@
 #!/usr/bin/env bash
 
-# Exit on error and setup timestamped log
-set -e
-LOG_DIR="logs"
-LOG_FILE="$LOG_DIR/session_$(date +'%Y%m%d-%H%M').log"
-mkdir -p "$LOG_DIR"
-exec > >(tee -a "$LOG_FILE") 2>&1
+# 🧩 Initialize Environment
+mkdir -p logs scripts
+TIMESTAMP="$(date +'%Y%m%d-%H%M')"
+LOG_FILE="logs/session_${TIMESTAMP}.log"
+
+# 🧠 Default Flags
+DEBUG_MODE=true
+AUTO_PERSIST=false
+NO_COLOR=false
+DRY_RUN=false
+
+# 🔧 Load Configuration
+source config/kali-usb.conf
+
+# 🎨 Visual + Symbolic Helpers
+COLOR_ECHO() {
+  [[ "$NO_COLOR" == true ]] && echo "$1" || echo -e "\e[1;32m$1\e[0m"
+}
 
 SYMBOLIC_TAG() {
-    echo "🪙 [$1] $2" >> "$LOG_FILE"
+  echo "🪙 [$1] $2" >> "$LOG_FILE"
 }
 
-COLOR_ECHO() {
-    echo -e "\e[1;32m$1\e[0m"
+# 🔧 Error Trap
+handle_error() {
+  local lineno="$1"
+  local cmd="$2"
+  SYMBOLIC_TAG "❌" "Error on line $lineno: $cmd"
+  COLOR_ECHO "❌ An error occurred — line $lineno: $cmd"
 }
 
-list_usb_devices() {
-    COLOR_ECHO "🔍 Step 1: Select your USB device"
-    mapfile -t devices < <(lsblk -o NAME,SIZE,TYPE,MOUNTPOINT | grep 'disk')
-    for i in "${!devices[@]}"; do echo "$((i+1))) ${devices[$i]}"; done
-    read -p "Enter the number for your USB device: " choice
-    device_name=$(echo "${devices[$((choice - 1))]}" | awk '{print $1}')
-    echo "/dev/${device_name}"
+trap 'handle_error $LINENO "$BASH_COMMAND"' ERR
+
+# 🔀 Mode + Safety Utilities
+detect_script() {
+  local mock="$1" prod="$2"
+  [[ "$DEBUG_MODE" == true ]] && echo "$mock" || echo "$prod"
 }
 
-list_iso_files() {
-    COLOR_ECHO "📀 Step 2: Select Kali ISO file"
-    mapfile -t iso_files < <(find . -maxdepth 1 -type f -name "*.iso")
-    for i in "${!iso_files[@]}"; do echo "$((i+1))) ${iso_files[$i]}"; done
-    read -p "Enter the number for your Kali ISO: " choice
-    echo "${iso_files[$((choice - 1))]}"
+confirm_production_switch() {
+  read -p "Switch to production scripts? This may affect devices. [y/N]: " confirm
+  if [[ "$confirm" =~ ^[Yy]$ ]]; then
+    DEBUG_MODE=false
+    SYMBOLIC_TAG "⚡" "Production mode activated"
+  fi
 }
 
-run_command() {
-    COLOR_ECHO "⚙️ Running: $*"
-    "$@" && SYMBOLIC_TAG "✅" "$* succeeded"
+check_mock_image_exists() {
+  if [[ "$DEBUG_MODE" == true && -f "usb.img" ]]; then
+    local backup="usb_backup_${TIMESTAMP}.img"
+    mv usb.img "$backup"
+    SYMBOLIC_TAG "⚠️" "usb.img already existed — backed up to $backup"
+    COLOR_ECHO "⚠️ usb.img already exists — backed up to $backup"
+  fi
 }
 
-partition_usb() {
-    COLOR_ECHO "🧱 Partitioning USB: $1"
-    run_command parted "$1" mklabel msdos
-    run_command parted "$1" mkpart primary fat32 1MiB 4096MiB
-    run_command mkfs.vfat "${1}1"
-    SYMBOLIC_TAG "🧱" "Partition created"
-}
-
-setup_persistence() {
-    COLOR_ECHO "💾 Creating persistence partition..."
-    run_command parted "$1" mkpart primary ext4 4096MiB "$2"
-    run_command mkfs.ext4 "${1}2"
-    mkdir -p /mnt/kali_persistence
-    run_command mount "${1}2" /mnt/kali_persistence
-    echo "/ union" > /mnt/kali_persistence/persistence.conf
-    run_command umount /mnt/kali_persistence
-    SYMBOLIC_TAG "💾" "Persistence configured"
-}
-
-flash_iso() {
-    COLOR_ECHO "🔥 Flashing $1 → ${2}1..."
-    run_command dd if="$1" of="${2}1" bs=4M status=progress oflag=sync
-    SYMBOLIC_TAG "🔥" "ISO flashed"
-}
-
-generate_python_summary() {
-    COLOR_ECHO "🧠 Python audit requested..."
-    if [[ -x usb_summary.py ]]; then
-        ./usb_summary.py --md >> "$LOG_DIR/summary_$(date +'%Y%m%d-%H%M').md"
-        SYMBOLIC_TAG "📊" "Markdown summary generated"
+check_dependencies() {
+  for cmd in mkfs.ext4 truncate dd; do
+    if ! command -v "$cmd" > /dev/null; then
+      handle_error $LINENO "$cmd not found"
+      exit 1
     fi
+  done
 }
 
-main() {
-    [[ $EUID -ne 0 ]] && echo "Run as root." && exit 1
+# 🧪 Embedded Mock Modules
+cat <<'EOF' > scripts/mock_partition.sh
+COLOR_ECHO "🧪 Simulating partition..."
+[[ "$DRY_RUN" == true ]] || (truncate -s 2G usb.img && mkfs.ext4 usb.img > /dev/null)
+SYMBOLIC_TAG "💾" "Partition simulation complete"
+EOF
 
-    COLOR_ECHO "🚀 Starting Kali USB Creator"
-    usb_device=$(list_usb_devices)
-    iso_file=$(list_iso_files)
+cat <<'EOF' > scripts/mock_flash_iso.sh
+COLOR_ECHO "🧪 Simulating ISO flash..."
+[[ "$DRY_RUN" == true ]] || dd if=/dev/zero of=usb.img bs=1M count=100 status=none
+SYMBOLIC_TAG "📀" "ISO flash simulation complete"
+EOF
 
-    read -p "Enable persistent storage? [y/N]: " enable_persistence
-    partition_usb "$usb_device"
-    flash_iso "$iso_file" "$usb_device"
+cat <<'EOF' > scripts/mock_persistence.sh
+COLOR_ECHO "🧪 Simulating persistence setup..."
+[[ "$DRY_RUN" == true ]] || dd if=/dev/zero of=persistence.img bs=1M count=256 status=none
+SYMBOLIC_TAG "🔒" "Persistence simulation complete"
+EOF
 
-    if [[ "$enable_persistence" =~ ^[Yy]$ ]]; then
-        read -p "Size for persistence partition (e.g. 6G): " size
-        setup_persistence "$usb_device" "$size"
-    fi
+# ⚙️ Resolve Scripts
+PARTITION_SCRIPT="$(detect_script "scripts/mock_partition.sh" "scripts/partition_usb.sh")"
+FLASH_SCRIPT="$(detect_script "scripts/mock_flash_iso.sh" "scripts/flash_iso.sh")"
+PERSISTENCE_SCRIPT="$(detect_script "scripts/mock_persistence.sh" "scripts/setup_persistence.sh")"
 
-    read -p "Generate summary report? [y/N]: " audit
-    [[ "$audit" =~ ^[Yy]$ ]] && generate_python_summary
-
-    COLOR_ECHO "\n✅ All done. Bootable USB created."
-    SYMBOLIC_TAG "🎉" "USB creation complete"
+# 🎛️ Interactive Flow
+retry_step() {
+  local step="$1"
+  local label="$2"
+  until "$step"; do
+    read -p "Retry $label step? [y/N]: " retry
+    [[ "$retry" =~ ^[Yy]$ ]] || break
+  done
 }
 
-main "$@"
+main_menu() {
+  COLOR_ECHO "🧪 Kali USB Creator — Mode: $([[ "$DEBUG_MODE" == true ]] && echo 'Mock' || echo 'Production')"
+  SYMBOLIC_TAG "🧪" "Interactive menu activated"
+  check_dependencies
+
+  PS3="🛠️ Choose an action: "
+  options=(
+    "🧱 Partition USB"
+    "📀 Flash ISO"
+    "🔒 Setup Persistence"
+    "🚀 Run Full Flow"
+    "⚡ Switch to Production"
+    "📋 Show Log Summary"
+    "❌ Exit"
+  )
+
+  select opt in "${options[@]}"; do
+    case $REPLY in
+      1) check_mock_image_exists; retry_step "source $PARTITION_SCRIPT" "partition" ;;
+      2) retry_step "source $FLASH_SCRIPT" "flash" ;;
+      3) retry_step "source $PERSISTENCE_SCRIPT" "persistence" ;;
+      4)
+        check_mock_image_exists
+        retry_step "source $PARTITION_SCRIPT" "partition"
+        retry_step "source $FLASH_SCRIPT" "flash"
+        if [[ "$AUTO_PERSIST" == true ]]; then
+          retry_step "source $PERSISTENCE_SCRIPT" "persistence"
+        else
+          read -p "Enable persistence? [y/N]: " persist
+          [[ "$persist" =~ ^[Yy]$ ]] && retry_step "source $PERSISTENCE_SCRIPT" "persistence"
+        fi
+        SYMBOLIC_TAG "🎯" "Full flow complete"
+        COLOR_ECHO "✅ All tasks executed successfully"
+        ;;
+      5) confirm_production_switch ;;
+      6)
+        grep '🪙' "$LOG_FILE" | sed 's/🪙 \[\(.*\)\] \(.*\)/\1: \2/' > "logs/summary_$TIMESTAMP.txt"
+        COLOR_ECHO "📋 Summary saved to logs/summary_$TIMESTAMP.txt"
+        ;;
+      7) break ;;
+      *) COLOR_ECHO "⛔ Invalid selection" ;;
+    esac
+  done
+}
+
+main_menu
