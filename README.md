@@ -18,7 +18,6 @@ A modular and extensible Bash-based toolkit for creating bootable Kali Linux USB
 
 ## 📂 Project Structure
 
-`text
 kali-usb-creator-dev/
 ├── kali-usb-creator.sh          # Main orchestrator script
 ├── config/
@@ -34,7 +33,7 @@ kali-usb-creator-dev/
 ├── docs/                        # Usage guides and changelogs
 ├── LICENSE                      # MIT license
 └── README.md                    # This file
-`
+
 
 ###
 
@@ -42,16 +41,16 @@ kali-usb-creator-dev/
 
 Run the script with root privileges:
 
-`bash
+bash
 chmod +x kali-usb-creator.sh
 sudo ./kali-usb-creator.sh
-`
+
 
 Optional config preload:
 
-`bash
+bash
 source config/kali-usb.conf
-`
+
 
 ###
 
@@ -59,10 +58,10 @@ source config/kali-usb.conf
 
 Audit your dev directory with symbolic tags and file stats:
 
-`bash
+bash
 ./usb_summary.py --md        # Markdown output
 ./usb_summary.py --json      # JSON output
-`
+
 
 Outputs include:
 - File type counts
@@ -103,8 +102,6 @@ This project is licensed under the MIT License.
 
 ## 🧩 1. kali-usb-creator.sh – Main Orchestrator
 
-`bash
-
 #!/usr/bin/env bash
 set -e
 
@@ -135,52 +132,44 @@ main() {
 }
 
 main "$@"
-`
+
 
 ###
 
 ## 🛠️ 2. config/kali-usb.conf
 
-`bash
-
 User-defined settings
 USB_DEVICE="/dev/sdX"
 KALI_ISO="./kali-linux.iso"
-`
+
 
 ###
 
 ## 🔧 3. scripts/partition_usb.sh
 
-`bash
-
-!/usr/bin/env bash
+#!/usr/bin/env bash
 COLORECHO "🧱 Partitioning $USBDEVICE"
 parted "$USB_DEVICE" mklabel msdos
 parted "$USB_DEVICE" mkpart primary fat32 1MiB 4096MiB
 mkfs.vfat "${USB_DEVICE}1"
 SYMBOLIC_TAG "🧱" "Partition created"
-`
+
 
 ###
 
 ## 🔥 4. scripts/flash_iso.sh
 
-`bash
-
-!/usr/bin/env bash
+#!/usr/bin/env bash
 COLOR_ECHO "🔥 Flashing ISO to USB..."
 dd if="$KALIISO" of="${USBDEVICE}1" bs=4M status=progress oflag=sync
 SYMBOLIC_TAG "🔥" "ISO flashed"
-`
+
 
 ###
 
 ## 💾 5. scripts/setup_persistence.sh
 
-`bash
-
-!/usr/bin/env bash
+#!/usr/bin/env bash
 COLOR_ECHO "💾 Setting up persistence..."
 parted "$USB_DEVICE" mkpart primary ext4 4096MiB 100%
 mkfs.ext4 "${USB_DEVICE}2"
@@ -190,15 +179,13 @@ mount "${USBDEVICE}2" "$mountpoint"
 echo "/ union" > "$mount_point/persistence.conf"
 umount "$mount_point"
 SYMBOLIC_TAG "💾" "Persistence configured"
-`
+
 
 ###
 
 ## 🐍 6. usb_summary.py – Python Sidecar
 
-`python
-
-!/usr/bin/env python3
+#!/usr/bin/env python3
 import os, time
 from collections import Counter
 
@@ -221,19 +208,19 @@ for f in sorted(file_data, key=lambda x: x[1], reverse=True)[:5]:
 print("\n🔹 Oldest Files:")
 for f in sorted(file_data, key=lambda x: x[2])[:5]:
     print(f"  ▸ {os.path.basename(f[3])} – {time.ctime(f[2])}")
-`
+
 
 ###
 
 ## 📝 7. LICENSE (MIT License)
 
-`
+
 MIT License
 
 Copyright (c) 2025 K1LLLAGT
 
 Permission is hereby granted, free of charge...
-`
+
 
 ###
 
