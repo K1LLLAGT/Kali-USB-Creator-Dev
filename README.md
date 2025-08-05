@@ -1,267 +1,140 @@
-## 🔧 Kali USB Creator Dev Toolkit
+🧪 Kali USB Creator
 
-A modular and extensible Bash-based toolkit for creating bootable Kali Linux USB drives with optional persistent storage, symbolic tagging, and dynamic auditing capabilities.
+An interactive Bash utility for safely creating Kali Linux bootable USBs — featuring symbolic tagging, mock-mode simulation, retry logic, safety checks, and dry-run support.
 
-###
+---
 
-## ⚙️ Features
+📦 Features
 
-- ✅ Guided USB partitioning (FAT32 & ext4)
-- ✅ Flash Kali ISO with progress feedback
-- ✅ Optional persistence setup (/ union)
-- ✅ Symbolic tag logging (🧱, 🔥, 💾, ✅)
-- ✅ Python-powered summary reports (Markdown / JSON)
-- ✅ Timestamped logs per session
-- ✅ Preload config for non-interactive runs
+- Interactive terminal menu with symbolic logging
+- Mock mode with virtual operations (usb.img, persistence.img)
+- Dry-run support for step verification
+- Robust error trapping and fallback flow
+- Auto-backup of existing mock images
+- Script dependency verification
+- Per-step retry prompts and symbolic tagging logs
 
-###
+---
 
-## 📂 Project Structure
+📁 Directory Structure
 
-Kali-USB-Creator-Dev/
+`
+.
 ├── kali-usb-creator.sh
 ├── config/
-│   └── kali-usb.conf
+│   └── kali-usb.conf        # Custom settings
 ├── scripts/
-│   ├── partition_usb.sh
-│   ├── flash_iso.sh
-│   └── setup_persistence.sh
+│   ├── mock_partition.sh
+│   ├── mockflashiso.sh
+│   ├── mock_persistence.sh
+│   ├── partition_usb.sh     # [optional] production version
+│   ├── flash_iso.sh         # [optional]
+│   └── setup_persistence.sh # [optional]
 ├── logs/
-├── assets/
-│   └── logo.png
-├── usb_summary.py
-├── docs/
-├── LICENSE
-└── README.md
+│   └── session_*.log        # Live logs
+│   └── summary_*.txt        # Extracted symbolic summaries
+`
 
+---
 
+🚀 Quick Start
 
-## 🚀 Quick Start
-
-# Run the script with root privileges:
-
+`bash
 chmod +x kali-usb-creator.sh
-sudo ./kali-usb-creator.sh
+./kali-usb-creator.sh
+`
 
+To run with specific flags:
 
-# Optional config preload:
+`bash
+./kali-usb-creator.sh --mode prod --auto-persist --no-color --logfile custom.log
+`
 
-source config/kali-usb.conf
+---
 
+🧠 Flags and Options
 
+| Flag             | Description                                  |
+|------------------|----------------------------------------------|
+| --mode prod     | Use real device scripts                     |
+| --auto-persist  | Skip persistence confirmation               |
+| --no-color      | Disable terminal colors                     |
+| --logfile <file>| Use custom log file path                    |
+| DRY_RUN=true    | (Env var) Simulate commands without execution |
 
-## 🧠 Python Summary Tool
+You can export flags before execution:
 
-# Audit your dev directory with symbolic tags and file stats:
+`bash
+DEBUG_MODE=true
+DRY_RUN=true
+AUTO_PERSIST=true
+./kali-usb-creator.sh
+`
 
-./usb_summary.py --md        # Markdown output
-./usb_summary.py --json      # JSON output
+---
 
+🔐 Safety Logic
 
-# Outputs include:
-- File type counts
-- Largest & oldest files
-- Tag-enhanced metadata trail
+- Backs up existing usb.img to usbbackup<timestamp>.img in mock mode
+- Fails gracefully if required tools (dd, mkfs.ext4, truncate) are missing
+- Interactive retry support after errors
+- Symbolic tags for every milestone/error are written to log
 
+---
 
-## 📦 Packaging & Distribution (Coming Soon)
+🧪 Simulation Mode
 
-# Features under development:
+Default mode is DEBUG_MODE=true and uses:
 
-- .deb packaging with control file and symlinked bin
-- Remote prep via SSH
-- Bash dashboard UX via dialog
-- ISO fetcher + SHA256/GPG verifier
-- Symbolic tag indexer for audit logs
+- truncate, mkfs.ext4 to simulate partitioning
+- dd to mock ISO flashing and persistence creation
 
+Resulting files:
+- usb.img: Virtual USB device
+- persistence.img: Simulated persistence overlay
 
-## 🧰 Dependencies
+---
 
-- Bash utilities: dd, parted, mkfs, lsblk, tree
-- Python 3 (for usb_summary.py)
-- Compatible with Termux, Ubuntu, and Kali Linux
+📋 Logs & Symbolic Tags
 
+Logs are stored in logs/session_<timestamp>.log. Symbolic tags track step status:
 
-## 🔒 License
+`text
+🪙 [💾] Partition simulation complete
+🪙 [📀] ISO flash simulation complete
+🪙 [❌] Error on line 72: dd if=/dev/zero ...
+`
 
-# This project is licensed under the MIT License.
+Summaries are extracted to logs/summary_<timestamp>.txt.
 
+---
 
-## here's a full breakdown of the core scripts and key components for building out your kali-usb-creator-dev/ directory. This structure reflects your enhanced toolkit with symbolic tagging, dynamic logging, and modular architecture.
+❗ Requirements
 
+Ensure these tools are available:
 
-## 🧩 1. Kali-USB-Creator.sh – Main Orchestrator
+`bash
+mkfs.ext4
+truncate
+dd
+`
 
-#!/usr/bin/env bash
-set -e
-set -x
+Install via:
 
-LOG_DIR="logs"
-LOGFILE="$LOGDIR/session_$(date +'%Y%m%d-%H%M').log"
-mkdir -p "$LOG_DIR"
-exec > >(tee -a "$LOG_FILE") 2>&1
+`bash
+sudo apt install coreutils e2fsprogs
+`
 
-SYMBOLICTAG() { echo "🪙 [$1] $2" >> "$LOGFILE"; }
-COLOR_ECHO() { echo -e "\e[1;32m$1\e[0m"; }
+---
 
-source config/kali-usb.conf
+💡 Extensions
 
-main() {
-  [[ $EUID -ne 0 ]] && echo "Run as root." && exit 1
-  COLOR_ECHO "🚀 Kali USB Creator Started"
+- Add symbolic tagging to your custom scripts/partition_usb.sh etc.
+- Swap in production scripts with --mode prod
+- Visualize logs with a custom parser or symbolic dashboard
 
-  source scripts/partition_usb.sh
-  source scripts/flash_iso.sh
+---
 
-  read -p "Enable persistence? [y/N]: " persist
-  if [[ "$persist" =~ ^[Yy]$ ]]; then
-    source scripts/setup_persistence.sh
-  fi
+📞 Support
 
-  SYMBOLIC_TAG "🎉" "Creation complete"
-  COLOR_ECHO "✅ USB ready to boot Kali Linux"
-}
-
-main "$@"
-
-
-
-## 🛠️ 2. config/kali-usb.conf
-
-User-defined settings
-USB_DEVICE="./dev/sdb"
-KALI_ISO="./kali-linux.iso"
-
-
-
-## 🔧 3. scripts/partition_usb.sh
-
-#!/usr/bin/env bash
-COLORECHO "🧱 Partitioning $USBDEVICE"
-parted "$USB_DEVICE" mklabel sandisk
-parted "$USB_DEVICE" mkpart primary fat32 1MiB 4096MiB
-mkfs.vfat "${USB_DEVICE}1"
-SYMBOLIC_TAG "🧱" "Partition created"
-
-
-
-## 🔥 4. scripts/flash_iso.sh
-
-#!/usr/bin/env bash
-COLOR_ECHO "🔥 Flashing ISO to USB..."
-dd if="$KALIISO" of="${USBDEVICE}1" bs=4M status=progress oflag=sync
-SYMBOLIC_TAG "🔥" "ISO flashed"
-
-
-
-## 💾 5. scripts/setup_persistence.sh
-
-#!/usr/bin/env bash
-COLOR_ECHO "💾 Setting up persistence..."
-parted "$USB_DEVICE" mkpart primary ext4 4096MiB 100%
-mkfs.ext4 "${USB_DEVICE}2"
-mountpoint="/mnt/kalipersistence"
-mkdir -p "$mount_point"
-mount "${USBDEVICE}2" "$mountpoint"
-echo "/ union" > "$mount_point/persistence.conf"
-umount "$mount_point"
-SYMBOLIC_TAG "💾" "Persistence configured"
-
-
-
-## 🐍 6. usb_summary.py – Python Sidecar
-
-#!/usr/bin/env python3
-import os, time
-from collections import Counter
-
-DIR = os.path.expanduser("~/kali-usb-creator-dev")
-file_data = [(ext := os.path.splitext(f)[1][1:] or "none",
-              os.path.getsize(path := os.path.join(root, f)),
-              os.path.getmtime(path),
-              path)
-             for root, _, files in os.walk(DIR)
-             for f in files]
-
-print("🔹 File Types:")
-for ext, count in Counter(f[0] for f in file_data).items():
-    print(f"  ▸ {ext}: {count}")
-
-print("\n🔹 Largest Files:")
-for f in sorted(file_data, key=lambda x: x[1], reverse=True)[:5]:
-    print(f"  ▸ {os.path.basename(f[3])} – {f[1]//1024} KB")
-
-print("\n🔹 Oldest Files:")
-for f in sorted(file_data, key=lambda x: x[2])[:5]:
-    print(f"  ▸ {os.path.basename(f[3])} – {time.ctime(f[2])}")
-
-
-
-## 📝 7. LICENSE (MIT License)
-
-
-MIT License
-
-Copyright (c) 2025 K1LLLAGT
-
-Permission is hereby granted, free of charge...
-
-
-
-## 📘 8. README.md
-
-The version I crafted earlier is your production-ready version — GitHub-friendly, fully formatted with usage, structure, and advanced features.
-
-
-## 🧱 9. Directory Stubs
-
-- logs/ – Auto-generated per session
-- assets/logo.png – Optional branding
-- docs/ – Usage guides, changelogs, symbolic tagging docs (can scaffold on request)
-
-## 10. Finalized kali-usb-creator.sh
-
-#!/usr/bin/env bash
-
-# 🚨 Exit on error and print every command
-set -e
-set -x
-
-# 🗂️ Logging setup
-LOG_DIR="logs"
-mkdir -p "$LOG_DIR"
-LOG_FILE="$LOG_DIR/session_$(date +'%Y%m%d-%H%M').log"
-exec > >(tee -a "$LOG_FILE") 2>&1
-
-# 🧠 Helpers
-SYMBOLIC_TAG() {
-  echo "🪙 [$1] $2" >> "$LOG_FILE"
-}
-
-COLOR_ECHO() {
-  echo -e "\e[1;32m$1\e[0m"
-}
-
-# 🔧 Load user config
-source config/kali-usb.conf
-
-# 🚀 Main Execution Flow
-main() {
-  [[ $EUID -ne 0 ]] && echo "This script must be run as root." && exit 1
-
-  COLOR_ECHO "🚀 Kali USB Creator Started"
-  SYMBOLIC_TAG "🚀" "Script execution initiated"
-
-  source scripts/partition_usb.sh
-  source scripts/flash_iso.sh
-
-  read -p "Enable persistence? [y/N]: " persist
-  if [[ "$persist" =~ ^[Yy]$ ]]; then
-    source scripts/setup_persistence.sh
-  fi
-
-  SYMBOLIC_TAG "🎉" "Creation complete"
-  COLOR_ECHO "✅ USB ready to boot Kali Linux"
-}
-
-main "$@"
+For enhancements, issues, or symbolic integrations, feel free to fork and extend.
