@@ -90,10 +90,11 @@ source config/kali-usb.conf
 ## here's a full breakdown of the core scripts and key components for building out your kali-usb-creator-dev/ directory. This structure reflects your enhanced toolkit with symbolic tagging, dynamic logging, and modular architecture.
 
 
-## 🧩 1. kali-usb-creator.sh – Main Orchestrator
+## 🧩 1. Kali-USB-Creator.sh – Main Orchestrator
 
 #!/usr/bin/env bash
 set -e
+set -x
 
 LOG_DIR="logs"
 LOGFILE="$LOGDIR/session_$(date +'%Y%m%d-%H%M').log"
@@ -217,3 +218,50 @@ The version I crafted earlier is your production-ready version — GitHub-friend
 - logs/ – Auto-generated per session
 - assets/logo.png – Optional branding
 - docs/ – Usage guides, changelogs, symbolic tagging docs (can scaffold on request)
+
+## 10. Finalized kali-usb-creator.sh
+
+#!/usr/bin/env bash
+
+# 🚨 Exit on error and print every command
+set -e
+set -x
+
+# 🗂️ Logging setup
+LOG_DIR="logs"
+mkdir -p "$LOG_DIR"
+LOG_FILE="$LOG_DIR/session_$(date +'%Y%m%d-%H%M').log"
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+# 🧠 Helpers
+SYMBOLIC_TAG() {
+  echo "🪙 [$1] $2" >> "$LOG_FILE"
+}
+
+COLOR_ECHO() {
+  echo -e "\e[1;32m$1\e[0m"
+}
+
+# 🔧 Load user config
+source config/kali-usb.conf
+
+# 🚀 Main Execution Flow
+main() {
+  [[ $EUID -ne 0 ]] && echo "This script must be run as root." && exit 1
+
+  COLOR_ECHO "🚀 Kali USB Creator Started"
+  SYMBOLIC_TAG "🚀" "Script execution initiated"
+
+  source scripts/partition_usb.sh
+  source scripts/flash_iso.sh
+
+  read -p "Enable persistence? [y/N]: " persist
+  if [[ "$persist" =~ ^[Yy]$ ]]; then
+    source scripts/setup_persistence.sh
+  fi
+
+  SYMBOLIC_TAG "🎉" "Creation complete"
+  COLOR_ECHO "✅ USB ready to boot Kali Linux"
+}
+
+main "$@"
