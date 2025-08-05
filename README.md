@@ -18,61 +18,55 @@ A modular and extensible Bash-based toolkit for creating bootable Kali Linux USB
 
 ## 📂 Project Structure
 
-kali-usb-creator-dev/
-├── kali-usb-creator.sh          # Main orchestrator script
+Kali-USB-Creator-Dev/
+├── kali-usb-creator.sh
 ├── config/
-│   └── kali-usb.conf            # Device + ISO config
+│   └── kali-usb.conf
 ├── scripts/
 │   ├── partition_usb.sh
 │   ├── flash_iso.sh
 │   └── setup_persistence.sh
-├── logs/                        # Timestamped symbolic logs
+├── logs/
 ├── assets/
-│   └── logo.png                 # Branding graphic
-├── usb_summary.py               # Python CLI sidecar auditor
-├── docs/                        # Usage guides and changelogs
-├── LICENSE                      # MIT license
-└── README.md                    # This file
+│   └── logo.png
+├── usb_summary.py
+├── docs/
+├── LICENSE
+└── README.md
 
 
-###
 
 ## 🚀 Quick Start
 
-Run the script with root privileges:
+# Run the script with root privileges:
 
-bash
 chmod +x kali-usb-creator.sh
 sudo ./kali-usb-creator.sh
 
 
-Optional config preload:
+# Optional config preload:
 
-bash
 source config/kali-usb.conf
 
 
-###
 
 ## 🧠 Python Summary Tool
 
-Audit your dev directory with symbolic tags and file stats:
+# Audit your dev directory with symbolic tags and file stats:
 
-bash
 ./usb_summary.py --md        # Markdown output
 ./usb_summary.py --json      # JSON output
 
 
-Outputs include:
+# Outputs include:
 - File type counts
 - Largest & oldest files
 - Tag-enhanced metadata trail
 
-###
 
 ## 📦 Packaging & Distribution (Coming Soon)
 
-Features under development:
+# Features under development:
 
 - .deb packaging with control file and symlinked bin
 - Remote prep via SSH
@@ -80,7 +74,6 @@ Features under development:
 - ISO fetcher + SHA256/GPG verifier
 - Symbolic tag indexer for audit logs
 
-###
 
 ## 🧰 Dependencies
 
@@ -88,17 +81,14 @@ Features under development:
 - Python 3 (for usb_summary.py)
 - Compatible with Termux, Ubuntu, and Kali Linux
 
-###
 
 ## 🔒 License
 
-This project is licensed under the MIT License.
+# This project is licensed under the MIT License.
 
-###
 
 ## here's a full breakdown of the core scripts and key components for building out your kali-usb-creator-dev/ directory. This structure reflects your enhanced toolkit with symbolic tagging, dynamic logging, and modular architecture.
 
-###
 
 ## 🧩 1. kali-usb-creator.sh – Main Orchestrator
 
@@ -134,28 +124,25 @@ main() {
 main "$@"
 
 
-###
 
 ## 🛠️ 2. config/kali-usb.conf
 
 User-defined settings
-USB_DEVICE="/dev/sdX"
+USB_DEVICE="./dev/sdb"
 KALI_ISO="./kali-linux.iso"
 
 
-###
 
 ## 🔧 3. scripts/partition_usb.sh
 
 #!/usr/bin/env bash
 COLORECHO "🧱 Partitioning $USBDEVICE"
-parted "$USB_DEVICE" mklabel msdos
+parted "$USB_DEVICE" mklabel sandisk
 parted "$USB_DEVICE" mkpart primary fat32 1MiB 4096MiB
 mkfs.vfat "${USB_DEVICE}1"
 SYMBOLIC_TAG "🧱" "Partition created"
 
 
-###
 
 ## 🔥 4. scripts/flash_iso.sh
 
@@ -165,7 +152,6 @@ dd if="$KALIISO" of="${USBDEVICE}1" bs=4M status=progress oflag=sync
 SYMBOLIC_TAG "🔥" "ISO flashed"
 
 
-###
 
 ## 💾 5. scripts/setup_persistence.sh
 
@@ -181,7 +167,6 @@ umount "$mount_point"
 SYMBOLIC_TAG "💾" "Persistence configured"
 
 
-###
 
 ## 🐍 6. usb_summary.py – Python Sidecar
 
@@ -210,7 +195,6 @@ for f in sorted(file_data, key=lambda x: x[2])[:5]:
     print(f"  ▸ {os.path.basename(f[3])} – {time.ctime(f[2])}")
 
 
-###
 
 ## 📝 7. LICENSE (MIT License)
 
@@ -222,18 +206,14 @@ Copyright (c) 2025 K1LLLAGT
 Permission is hereby granted, free of charge...
 
 
-###
 
 ## 📘 8. README.md
 
 The version I crafted earlier is your production-ready version — GitHub-friendly, fully formatted with usage, structure, and advanced features.
 
-###
 
 ## 🧱 9. Directory Stubs
 
 - logs/ – Auto-generated per session
 - assets/logo.png – Optional branding
 - docs/ – Usage guides, changelogs, symbolic tagging docs (can scaffold on request)
-
-###
