@@ -1,4 +1,4 @@
-🧪 Kali USB Creator
+🧪 Kali USB Creator Dev
 
 An interactive Bash utility for safely creating Kali Linux bootable USBs — featuring symbolic tagging, mock-mode simulation, retry logic, safety checks, and dry-run support.
 
@@ -18,8 +18,7 @@ An interactive Bash utility for safely creating Kali Linux bootable USBs — fea
 
 📁 Directory Structure
 
-`
-.
+kali-usb-creator-dev/
 ├── kali-usb-creator.sh
 ├── config/
 │   └── kali-usb.conf        # Custom settings
@@ -31,9 +30,9 @@ An interactive Bash utility for safely creating Kali Linux bootable USBs — fea
 │   ├── flash_iso.sh         # [optional]
 │   └── setup_persistence.sh # [optional]
 ├── logs/
-│   └── session_*.log        # Live logs
+│   └── session_*.log        Live logs
 │   └── summary_*.txt        # Extracted symbolic summaries
-`
+
 
 ---
 
@@ -99,7 +98,7 @@ Resulting files:
 
 Logs are stored in logs/session_<timestamp>.log. Symbolic tags track step status:
 
-`text
+`echo
 🪙 [💾] Partition simulation complete
 🪙 [📀] ISO flash simulation complete
 🪙 [❌] Error on line 72: dd if=/dev/zero ...
