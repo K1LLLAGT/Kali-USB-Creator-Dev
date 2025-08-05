@@ -1,31 +1,22 @@
-# 🔥 Kali USB Creator
+# 🔧 Kali USB Creator Dev Toolkit
 
-A streamlined Bash toolkit for building dual-partitioned, bootable **Kali Linux USB drives** with optional persistence.
+A modular Bash toolkit designed to streamline the creation of bootable Kali Linux USB drives with optional persistent storage.
 
-## ✨ Features
+## 📦 Directory Scan
 
-- 🔧 Interactive USB device selection
-- 📁 Kali ISO file chooser
-- 💽 Automated USB partitioning and formatting
-- 🚀 ISO flashing via `dd`
-- 💾 Optional persistence partition setup
-- 🧠 Echo-driven UX with logging support
-
-## 🧰 Prerequisites
-
-- A Linux system (tested on Ubuntu, Kali)
-- Root privileges
-- Core dependencies:
-  - `dd`
-  - `parted`
-  - `mkfs.vfat`
-  - `mkfs.ext4`
-  - `lsblk`
-  - `awk`
-
-## 📦 Installation
+To audit the current contents of the toolkit, run:
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/Kali-USB-Creator.git
-cd Kali-USB-Creator
-chmod +x kali-usb-creator.sh
+#!/usr/bin/env bash
+
+DIR="$HOME/kali-usb-creator-dev"
+echo "📦 Scanning directory: $DIR"
+
+echo "🔹 Total size:"
+du -sh "$DIR"
+
+echo "🔹 Breakdown by file type:"
+find "$DIR" -type f | sed 's/.*\.//' | sort | uniq -c
+
+echo "🔹 Tree structure:"
+tree "$DIR" -L 2
